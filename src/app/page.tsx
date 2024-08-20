@@ -3,7 +3,7 @@
 import { db } from "@/config/firebase";
 import parseFireTime from "@/config/parseFireTime";
 import { AppBar, Box, Container, Divider, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Toolbar, Typography } from "@mui/material";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import moment from "moment";
 import { enqueueSnackbar } from "notistack";
 import { useEffect, useState } from "react";
@@ -12,10 +12,13 @@ export default function Home() {
   const [data, setData] = useState<{ message: string, createdAt: { seconds: number } }[]>([]);
   const [datalength, setDataLength] = useState<number|null>(null);
 
-  const unsubscribe = onSnapshot(collection(db, "data"), (snapshot) => {
-    const currentData:{ message: string, createdAt: { seconds: number } }[] = [];
-    snapshot.forEach((item) => {
-      const data = item.data();
+  const dataCollectionRef = collection(db, "data");
+  const q = query(dataCollectionRef, orderBy("createdAt", "desc"));
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const currentData: { message: string, createdAt: { seconds: number } }[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
       if ('message' in data && 'createdAt' in data) {
         currentData.push({ message: data.message, createdAt: data.createdAt });
       }
@@ -32,9 +35,10 @@ export default function Home() {
       setDataLength(data.length);
     } else if(data.length !== datalength){
       setDataLength(data.length);
-      enqueueSnackbar("Updated")
+      enqueueSnackbar(`${data[0].message} just now`)
     }
   },[data])
+  
   return (
     <Box sx={{ textAlign: "center" }}>
       <AppBar position="static">
