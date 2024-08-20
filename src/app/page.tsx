@@ -7,8 +7,10 @@ import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore"
 import moment from "moment";
 import { enqueueSnackbar } from "notistack";
 import { useEffect, useState } from "react";
+import useSound from "use-sound";
 
 export default function Home() {
+  const [play] = useSound("/notification.mp3");
   const [data, setData] = useState<{ message: string, createdAt: { seconds: number } }[]>([]);
   const [datalength, setDataLength] = useState<number|null>(null);
 
@@ -35,7 +37,8 @@ export default function Home() {
       setDataLength(data.length);
     } else if(data.length !== datalength){
       setDataLength(data.length);
-      enqueueSnackbar(`${data[0].message} just now`)
+      enqueueSnackbar(`${data[0].message} just now`);
+      play();
     }
   },[data])
   
