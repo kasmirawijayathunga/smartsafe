@@ -1,95 +1,68 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+
+import { db } from "@/config/firebase";
+import parseFireTime from "@/config/parseFireTime";
+import { AppBar, Box, Container, Divider, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Toolbar, Typography } from "@mui/material";
+import { collection, onSnapshot } from "firebase/firestore";
+import moment from "moment";
+import { enqueueSnackbar } from "notistack";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [data, setData] = useState<{ message: string, createdAt: { seconds: number } }[]>([]);
+  const [datalength, setDataLength] = useState<number|null>(null);
+
+  const unsubscribe = onSnapshot(collection(db, "data"), (snapshot) => {
+    const currentData:{ message: string, createdAt: { seconds: number } }[] = [];
+    snapshot.forEach((item) => {
+      const data = item.data();
+      if ('message' in data && 'createdAt' in data) {
+        currentData.push({ message: data.message, createdAt: data.createdAt });
+      }
+    });
+    setData(currentData);
+  });
+
+  useEffect(() => {
+    return () => unsubscribe()
+  },[]);
+
+  useEffect(() => {
+    if(datalength === null){
+      setDataLength(data.length);
+    } else if(data.length !== datalength){
+      setDataLength(data.length);
+      enqueueSnackbar("Updated")
+    }
+  },[data])
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    <Box sx={{ textAlign: "center" }}>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h5" sx={{ py:1 }}>Smart Safe System</Typography>
+        </Toolbar>
+      </AppBar>
+      <Divider />
+      <Container maxWidth="sm" sx={{ mt: 1 }}>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Action</TableCell>
+                <TableCell align="right">Time</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {data.map((item, index)=>(
+                <TableRow key={index}>
+                  <TableCell>{item.message}</TableCell>
+                  <TableCell align="right">{moment(parseFireTime(item.createdAt)).fromNow()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Container>
+    </Box>
   );
 }
